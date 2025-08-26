@@ -1,6 +1,9 @@
-from pytubefix import YouTube
+from urllib.parse import urlparse
 
-yt=YouTube("https://youtu.be/2_ufYaJNi7w?si=wI2D0nHw12C0Sjpi")
-stream=yt.streams.get_highest_resolution()
-stream.download()
-print("Downloaded")
+def is_url(url):
+    try:
+        result=urlparse(url)
+        return all([result.scheme,result.netloc])
+    except:
+        return False
+url="https://youtu.be/2_ufYaJNi7w?si=9JQrZnvT4NWN8IRF"
