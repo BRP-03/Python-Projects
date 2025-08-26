@@ -1,0 +1,28 @@
+def bot_win():
+    global buttons, comp_moves, available_moves # Global variables for modification
+
+    for win_pattern in winning_patterns:
+        # Har winning pattern ke liye yeh variables reset honge
+        bot_marks_in_current_pattern = []
+        empty_spot_in_current_pattern = None
+
+        for cell in win_pattern:
+            if cell in comp_moves:
+                bot_marks_in_current_pattern.append(cell)
+            elif cell in available_moves:
+                empty_spot_in_current_pattern = cell
+
+        # Agar bot ke 2 marks hain aur ek empty spot hai is pattern mein
+        if len(bot_marks_in_current_pattern) == 2 and empty_spot_in_current_pattern is not None:
+            # Bot ko winning move mil gayi!
+            r, c = empty_spot_in_current_pattern[0], empty_spot_in_current_pattern[1]
+
+            # Move execute karein
+            buttons[r][c].config(text="O", state="disabled")
+            comp_moves.append(empty_spot_in_current_pattern)
+            available_moves.remove(empty_spot_in_current_pattern)
+            print(f"Bot made winning move at: {empty_spot_in_current_pattern}")
+
+            return True # Bot ne winning move kar di, indicate True
+
+    return False # Agar koi winning move nahi mili
