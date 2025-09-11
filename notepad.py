@@ -22,7 +22,7 @@ class other_features():
         self.on_tab_change(note.get())
 
     def on_tab_change(self,nm):
-        lis=text_box[note._tab_dict[nm]]
+        lis=text_box[nm]
         state=status[nm]
         if nm[0:3]!="new":
             print("C1")
@@ -30,7 +30,6 @@ class other_features():
                 print("C2")
                 header.configure(text=f"{lis[1]} : Saved")
             else:
-
                 header.configure(text=f"{lis[1]} : Not Saved")
         else:
             header.configure(text="My Notepad")
@@ -77,10 +76,11 @@ class File_menu():
         new_tab=note.add(nm)  
         txtarea=ctk.CTkTextbox(new_tab)
         txtarea.pack(fill="both",expand=True)
-        text_box[new_tab]=[txtarea,n]
+        text_box[nm]=[txtarea,n]
+        print(text_box)
         note.set(nm)
         self.numbers.append(n)
-        txtarea.bind("<KeyPress>",of.update_status)
+        txtarea.bind("<KeyPress>",self.s.update_status)
         status[nm]=True
         self.s.on_tab_change(note.get())
 
@@ -98,10 +98,11 @@ class File_menu():
             txtarea=ctk.CTkTextbox(new_tab)
             txtarea.pack(fill="both",expand=True)
             txtarea.insert("1.0",content)
-            text_box[new_tab]=[txtarea,filepath]
+            text_box[nm]=[txtarea,filepath]
+            print(text_box)
             note.set(nm)
             status[nm]=True
-            txtarea.bind("<KeyPress>",of.update_status)
+            txtarea.bind("<KeyPress>",self.s.update_status)
             self.s.on_tab_change(note.get())
         except:
             pass
@@ -112,32 +113,32 @@ class File_menu():
             if filepath:
                 nm=note.get()
                 new_nm=os.path.basename(filepath)
-                for i in text_box:
-                    if i==note._tab_dict[note.get()]:  
-                        txt=text_box[i]
-                        content=txt[0].get("1.0",ctk.END) 
-                        text_box[i]=[txt[0],filepath]
-                        break      
+
+                txt=text_box[note.get()]
+                content=txt[0].get("1.0",ctk.END)
+                text_box.pop(nm) 
+                text_box[new_nm]=[txt[0],filepath]
+                print(text_box)
                 note.rename(nm,new_nm)
                 with open(filepath,"w") as f:
                     f.write(content)   
                 note.set(new_nm)
                 status.pop(nm)
                 status[new_nm]=True
+                print(text_box)
                 self.s.on_tab_change(note.get())
         else:
-            for i in text_box:
-                if i==note._tab_dict[note.get()]:  
-                    txt=text_box[i]
-                    content=txt[0].get("1.0",ctk.END) 
-                    filepath=txt[1]
-                    break
+            txt=text_box[note.get()]
+            content=txt[0].get("1.0",ctk.END) 
+            filepath=txt[1]
+            
             with open(filepath,"w") as f:
                 f.write(content)
             note.set(os.path.basename(filepath))	
             for i in status:
                 if i==note.get():
                     status[i]=True
+            print(text_box)
             self.s.on_tab_change(note.get())
     
     def save_as(self):
@@ -146,52 +147,47 @@ class File_menu():
         if filepath:
             new_nm=os.path.basename(filepath)
             nm=note.get()
-            for i in text_box:
-                if i==note._tab_dict[note.get()]:  
-                    txt=text_box[i]
-                    content=txt[0].get("1.0",ctk.END) 
-                    text_box[i]=[txt[0],filepath]
-                    break      
+            txt=text_box[note.get()]
+            content=txt[0].get("1.0",ctk.END) 
+            text_box.pop(nm)
+            text_box[new_nm]=[txt[0],filepath]
+                  
             with open(filepath,"w") as f:
                 f.write(content) 
             note.rename(nm,new_nm)
             note.set(new_nm)
             status.pop(nm)
             status[new_nm]=True
+            print(text_box)
             self.s.on_tab_change(note.get())
 
     def close(self):
-        s=other_features()
         if len(text_box)==1:
-            ch=s.check_status(note.get())
+            ch=self.s.check_status(note.get())
             if ch==True or ch=="saved":
                 note.delete(note.get())
                 text_box.clear()
                 status.clear()
                 self.new()
-            
+                print(text_box)
         else:
-            ch=s.check_status(note.get())
+            ch=self.s.check_status(note.get())
             if ch ==True or ch=="saved":
-                key=note._tab_dict[note.get()]
-                for i in text_box:
-                        if i==key:
-                            text_box.pop(i)
-                            break
+                text_box.pop(note.get())
                 note.delete(note.get())    
+            print(text_box)
 
     def close_all(self):
-        s=other_features()
         names=[]
         for i in note._tab_dict:
             names.append(i)
 
         for i in names:
-            ch=s.check_status(i)
+            ch=self.s.check_status(i)
             if ch==True or ch=="saved":
-                text_box.pop(note._tab_dict[i])
+                text_box.pop(i)
                 note.delete(i)
-                
+        print(text_box)
         if len(text_box)==0:
             self.new()
         else:
