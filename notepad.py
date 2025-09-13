@@ -17,25 +17,9 @@ class other_features():
             return "saved"
 
     def update_status(self,e):
-        widget=e.widget
-        for nm ,(txt,_) in text_box.items():
-            if txt==widget:
-                status[nm]=False
-                self.on_tab_change(note.get())
-                break
-
-
-    def on_tab_change(self,nm):
-        if nm in text_box:
-            filepath=text_box[nm][1]
-            state=status[nm]
-        if isinstance(filepath,str):
-            if state==True:
-                header.configure(text=f"{filepath} : Saved")
-            else:
-                header.configure(text=f"{filepath} : Not Saved")
-        else:
-            header.configure(text="My Notepad")
+        print("C1")
+        nm=note.get()
+        status[nm]=False
 
 class File_menu():
     def __init__(self):
@@ -84,9 +68,8 @@ class File_menu():
         print(text_box)
         note.set(nm)
         self.numbers.append(n)
-        txtarea.bind("<KeyPress>",self.s.update_status)
         status[nm]=True
-        self.s.on_tab_change(note.get())
+        txtarea.bind("<KeyPress>",self.s.update_status)
 
     def open_file(self):
         global status,text_box
@@ -108,7 +91,7 @@ class File_menu():
             note.set(nm)
             status[nm]=True
             txtarea.bind("<KeyPress>",self.s.update_status)
-            self.s.on_tab_change(note.get())
+
         except:
             pass
 
@@ -131,7 +114,7 @@ class File_menu():
                 note.set(new_nm)
                 status[new_nm]=True
                 print(text_box)
-                self.s.on_tab_change(note.get())
+    
         else:
             txt=text_box[note.get()]
             content=txt[0].get("1.0",ctk.END) 
@@ -144,7 +127,7 @@ class File_menu():
                 if i==note.get():
                     status[i]=True
             print(text_box)
-        self.s.on_tab_change(note.get())
+        
     
     def save_as(self):
         global text_box, status
@@ -165,7 +148,7 @@ class File_menu():
             note.set(new_nm)
             status[new_nm]=True
             print(text_box)
-            self.s.on_tab_change(note.get())
+            
 
     def close(self):
         if len(text_box)==1:
@@ -212,8 +195,6 @@ header.pack(anchor='w')
 
 note=ctk.CTkTabview(win,anchor="nw")
 note.pack(fill="both",expand=True)
-note._segmented_button.configure(command=lambda nm :of.on_tab_change(nm))
-# note.configure(command=lambda : of.on_tab_change(note.get()))
 note.add("new 1")
 tab_frame=note._tab_dict["new 1"]
 txtarea=ctk.CTkTextbox(tab_frame)
@@ -221,7 +202,6 @@ txtarea.pack(fill="both",expand=True)
 txtarea.bind("<KeyPress>",of.update_status)
 text_box["new 1"]=[txtarea,1]
 status["new 1"]=True
-of.on_tab_change(note.get())
 
 menu_bar=Menu(win,bg="gray20",fg="white",font=("Arial",10,"normal"))
 win.config(menu=menu_bar)
