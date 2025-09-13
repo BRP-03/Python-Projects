@@ -17,27 +17,30 @@ class other_features():
             return "saved"
 
     def update_status(self,e):
-        nm=note.get()
-        status[nm]=False
-        self.on_tab_change(note.get())
+        widget=e.widget
+        for nm ,(txt,_) in text_box.items():
+            if txt==widget:
+                status[nm]=False
+                self.on_tab_change(note.get())
+                break
+
 
     def on_tab_change(self,nm):
-        lis=text_box[nm]
-        state=status[nm]
-        if nm[0:3]!="new":
-            print("C1")
+        if nm in text_box:
+            filepath=text_box[nm][1]
+            state=status[nm]
+        if isinstance(filepath,str):
             if state==True:
-                print("C2")
-                header.configure(text=f"{lis[1]} : Saved")
+                header.configure(text=f"{filepath} : Saved")
             else:
-                header.configure(text=f"{lis[1]} : Not Saved")
+                header.configure(text=f"{filepath} : Not Saved")
         else:
             header.configure(text="My Notepad")
 
 class File_menu():
     def __init__(self):
         self.numbers=[]
-    s=other_features()
+        self.s=other_features()
 
     def new(self):
         global text_box,status
@@ -73,8 +76,9 @@ class File_menu():
             n=2
         
         nm=f"new {n}"
-        new_tab=note.add(nm)  
-        txtarea=ctk.CTkTextbox(new_tab)
+        note.add(nm)  
+        tab_frame=note._tab_dict[nm]
+        txtarea=ctk.CTkTextbox(tab_frame)
         txtarea.pack(fill="both",expand=True)
         text_box[nm]=[txtarea,n]
         print(text_box)
@@ -85,7 +89,7 @@ class File_menu():
         self.s.on_tab_change(note.get())
 
     def open_file(self):
-        global status
+        global status,text_box
         try:
             filepath=filedialog.askopenfilename(
                 title="Open File",
@@ -94,8 +98,9 @@ class File_menu():
             nm=os.path.basename(filepath)
             with open(filepath,"r",encoding="utf-8") as f:
                 content=f.read()
-            new_tab=note.add(nm)
-            txtarea=ctk.CTkTextbox(new_tab)
+            note.add(nm)
+            tab_frame=note._tab_dict[nm]
+            txtarea=ctk.CTkTextbox(tab_frame)
             txtarea.pack(fill="both",expand=True)
             txtarea.insert("1.0",content)
             text_box[nm]=[txtarea,filepath]
@@ -108,22 +113,22 @@ class File_menu():
             pass
 
     def save(self):
+        global text_box,status
         if note.get()[0:3]=="new":
             filepath=filedialog.asksaveasfilename(title="Save File")
             if filepath:
                 nm=note.get()
                 new_nm=os.path.basename(filepath)
-
                 txt=text_box[note.get()]
                 content=txt[0].get("1.0",ctk.END)
+                note.rename(nm,new_nm)
                 text_box.pop(nm) 
+                status.pop(nm)
                 text_box[new_nm]=[txt[0],filepath]
                 print(text_box)
-                note.rename(nm,new_nm)
                 with open(filepath,"w") as f:
                     f.write(content)   
                 note.set(new_nm)
-                status.pop(nm)
                 status[new_nm]=True
                 print(text_box)
                 self.s.on_tab_change(note.get())
@@ -139,24 +144,25 @@ class File_menu():
                 if i==note.get():
                     status[i]=True
             print(text_box)
-            self.s.on_tab_change(note.get())
+        self.s.on_tab_change(note.get())
     
     def save_as(self):
+        global text_box, status
         filepath=filedialog.asksaveasfilename(
-                title="Save File"    )
+                title="Save File")
         if filepath:
             new_nm=os.path.basename(filepath)
             nm=note.get()
-            txt=text_box[note.get()]
-            content=txt[0].get("1.0",ctk.END) 
+            txt=text_box[note.get()][0]
+            content=txt.get("1.0",ctk.END) 
             text_box.pop(nm)
-            text_box[new_nm]=[txt[0],filepath]
+            status.pop(nm)
+            text_box[new_nm]=[txt,filepath]
                   
             with open(filepath,"w") as f:
                 f.write(content) 
             note.rename(nm,new_nm)
             note.set(new_nm)
-            status.pop(nm)
             status[new_nm]=True
             print(text_box)
             self.s.on_tab_change(note.get())
@@ -206,13 +212,16 @@ header.pack(anchor='w')
 
 note=ctk.CTkTabview(win,anchor="nw")
 note.pack(fill="both",expand=True)
-note._segmented_button.configure(command=of.on_tab_change)
-new_tab=note.add("new 1")
-txtarea=ctk.CTkTextbox(new_tab)
+note._segmented_button.configure(command=lambda nm :of.on_tab_change(nm))
+# note.configure(command=lambda : of.on_tab_change(note.get()))
+note.add("new 1")
+tab_frame=note._tab_dict["new 1"]
+txtarea=ctk.CTkTextbox(tab_frame)
 txtarea.pack(fill="both",expand=True)
+txtarea.bind("<KeyPress>",of.update_status)
 text_box["new 1"]=[txtarea,1]
 status["new 1"]=True
-txtarea.bind("<KeyPress>",of.update_status)
+of.on_tab_change(note.get())
 
 menu_bar=Menu(win,bg="gray20",fg="white",font=("Arial",10,"normal"))
 win.config(menu=menu_bar)
@@ -232,5 +241,8 @@ edit_menu.add_cascade(label="Mode Dark/Light")
 edit_menu.add_cascade(label="Finding")
 edit_menu.add_cascade(label="Undo")
 edit_menu.add_cascade(label="Redo")
+
+edit_menu = Menu(menu_bar, tearoff=0, bg="gray20", fg="white", font=("Arial", 10, "normal"))
+menu_bar.add_cascade(label="Edit", menu=edit_menu)
 
 win.mainloop()
