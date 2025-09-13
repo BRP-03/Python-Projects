@@ -17,9 +17,26 @@ class other_features():
             return "saved"
 
     def update_status(self,e):
-        print("C1")
         nm=note.get()
         status[nm]=False
+        self.update_header()
+
+    def update_header(self,nm=None):
+        if nm is None:
+            nm = note.get()  # current active tab ka naam
+        if nm.startswith("new"):  
+            if status[nm] == True:
+                header.configure(text="My Notepad : Saved")
+            else:
+                header.configure(text="My Notepad : Not Saved")
+        else:
+            filepath = text_box[nm][1]  # yaha path ya number hoga
+            if isinstance(filepath, str):  # matlab file open/save hui thi
+                if status[nm] == True:
+                    header.configure(text=f"{filepath} : Saved")
+                else:
+                    header.configure(text=f"{filepath} : Not Saved")
+
 
 class File_menu():
     def __init__(self):
@@ -70,6 +87,7 @@ class File_menu():
         self.numbers.append(n)
         status[nm]=True
         txtarea.bind("<KeyPress>",self.s.update_status)
+        self.s.update_header()
 
     def open_file(self):
         global status,text_box
@@ -91,6 +109,7 @@ class File_menu():
             note.set(nm)
             status[nm]=True
             txtarea.bind("<KeyPress>",self.s.update_status)
+            self.s.update_header()
 
         except:
             pass
@@ -127,7 +146,7 @@ class File_menu():
                 if i==note.get():
                     status[i]=True
             print(text_box)
-        
+        self.s.update_header()        
     
     def save_as(self):
         global text_box, status
@@ -148,7 +167,7 @@ class File_menu():
             note.set(new_nm)
             status[new_nm]=True
             print(text_box)
-            
+            self.s.update_header()
 
     def close(self):
         if len(text_box)==1:
@@ -165,6 +184,7 @@ class File_menu():
                 text_box.pop(note.get())
                 note.delete(note.get())    
             print(text_box)
+        self.s.update_header()
 
     def close_all(self):
         names=[]
@@ -182,6 +202,7 @@ class File_menu():
         else:
             text_box.clear()
             self.new()
+        self.s.update_header()
 
 # Main GUI
 fm=File_menu()
@@ -202,6 +223,7 @@ txtarea.pack(fill="both",expand=True)
 txtarea.bind("<KeyPress>",of.update_status)
 text_box["new 1"]=[txtarea,1]
 status["new 1"]=True
+note.configure(command=of.update_header)
 
 menu_bar=Menu(win,bg="gray20",fg="white",font=("Arial",10,"normal"))
 win.config(menu=menu_bar)
@@ -221,8 +243,5 @@ edit_menu.add_cascade(label="Mode Dark/Light")
 edit_menu.add_cascade(label="Finding")
 edit_menu.add_cascade(label="Undo")
 edit_menu.add_cascade(label="Redo")
-
-edit_menu = Menu(menu_bar, tearoff=0, bg="gray20", fg="white", font=("Arial", 10, "normal"))
-menu_bar.add_cascade(label="Edit", menu=edit_menu)
 
 win.mainloop()
