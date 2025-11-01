@@ -80,7 +80,7 @@ class File_menu():
         nm=f"new {n}"
         note.add(nm)  
         tab_frame=note._tab_dict[nm]
-        txtarea=ctk.CTkTextbox(tab_frame)
+        txtarea=ctk.CTkTextbox(tab_frame,undo=True,autoseparators=True)
         txtarea.pack(fill="both",expand=True)
         text_box[nm]=[txtarea,n]
         note.set(nm)
@@ -101,7 +101,7 @@ class File_menu():
                 content=f.read()
             note.add(nm)
             tab_frame=note._tab_dict[nm]
-            txtarea=ctk.CTkTextbox(tab_frame)
+            txtarea=ctk.CTkTextbox(tab_frame,undo=True,autoseparators=True)
             txtarea.pack(fill="both",expand=True)
             txtarea.insert("1.0",content)
             text_box[nm]=[txtarea,filepath]
@@ -198,6 +198,15 @@ class File_menu():
         self.s.update_header()
 
 class edit_menu():
+    def f_r_close(self):
+            text_widget = text_box[self.box][0]
+            text_widget.tag_remove('highlight', '1.0', tk.END)
+            text_widget.tag_remove('find_n', '1.0', tk.END)
+            self.matches.clear()
+            self.counter = -1
+            self.start = self.end = None
+            self.top_fr.destroy()
+
     def font_format(self):
         style = ttk.Style(win) 
         style.theme_use('default')
@@ -248,45 +257,148 @@ class edit_menu():
         top_fr.transient(win)
         top_fr.grab_set()
         top_fr.focus()
-        
-        # Grid layout use karenge for better alignment
         top_fr.grid_columnconfigure(1, weight=1)
+        top_fr.protocol("WM_DELETE_WINDOW", self.f_r_close)
+        self.box=note.get()
+        self.counter=-1
+        self.start=self.end=None
+        def find_all():
+            text_widget=text_box[self.box][0]
+            self.replace_all.configure(state='normal')
+            text_widget.tag_config('highlight',background="yellow",foreground='black')
+            text_widget.tag_remove('highlight','1.0',tk.END)
+            search_term=self.find_entry.get()
+            if not search_term:
+                return
+            start='1.0'
+            match_count=0
+            cased=None
+            if self.match_case_var.get()=="on":
+                cased=False
+            else:
+                cased=True
+            while True:
+                match_start=text_widget.search(search_term,start,stopindex=tk.END,nocase=cased)
+                if not match_start:
+                    break
+                match_end=f"{match_start}+{len(search_term)}c"
+                text_widget.tag_add('highlight',match_start,match_end)
+                self.matches.append([match_start,match_end])
+                start=match_end
+                match_count+=1
+            self.count_label.configure(text=f"Matcher : {match_count}")
+            if len(self.matches)==1:
+                self.start,self.end=self.matches[0][0],self.matches[0][1]
+                self.replace.configure(state="normal")
+            if len(self.matches)==0:
+                self.next.configure(state="disabled")
+                self.prev.configure(state="disabled")
+
+        def find_next():
+            if self.counter<len(self.matches)-1:
+                self.next.configure(state='normal')
+            self.counter+=1
+            self.replace.configure(state="normal")
+            self.start,self.end=self.matches[self.counter][0],self.matches[self.counter][1]
+            text_widget=text_box[self.box][0]
+            text_widget.tag_config('find_n',background="red",foreground='black')
+            text_widget.tag_remove('find_n','1.0',tk.END)
+            text_widget.tag_add('find_n',self.start,self.end)
+            line=self.start.split('.')[0]
+            idx=f"{line}.0"
+            text_widget.yview(idx)
+            self.prev.configure(state="normal")
+            if self.counter==len(self.matches)-1:
+                self.next.configure(state='disabled')
+
+        def find_prev():
+            if self.counter>=1:
+                self.prev.configure(state="normal")
+            self.counter-=1
+            self.replace.configure(state="normal")
+            self.start,self.end=self.matches[self.counter][0],self.matches[self.counter][1]
+            text_widget=text_box[self.box][0]
+            text_widget.tag_config('find_n',background="red",foreground='black')
+            text_widget.tag_remove('find_n','1.0',tk.END)
+            text_widget.tag_add('find_n',self.start,self.end)
+            line=self.start.split('.')[0]
+            idx=f"{line}.0"
+            text_widget.yview(idx)
+            self.next.configure(state="normal")
+            if self.counter==0:
+                self.prev.configure(state='disabled')
+            
+        def replace_f():
+            text_widget=text_box[self.box][0]
+            text_widget.delete(self.start,self.end)
+            text_widget.insert(self.start,self.replace_entry.get())
+            self.start=self.end=None
+            text_widget.tag_remove('find_n','1.0',tk.END)
+            self.matches.clear()
+            find_all()  
         
-        # 2. Find Section
+        def replace_all_f():
+            text_widget=text_box[self.box][0]
+            search_term=self.find_entry.get()
+            if not search_term:
+                return
+            start='1.0'
+            cased=None
+            if self.match_case_var.get()=="on":
+                cased=False
+            else:
+                cased=True
+            self.matches.reverse()
+            for start,end in self.matches:
+                text_widget.delete(start,end)
+                text_widget.insert(start,self.replace_entry.get())
+            self.count_label.configure(text=f"Matcher : 0")
+            self.matches.clear()
+            self.counter=-1
+            self.start=self.end=None
+            text_widget.tag_remove('highlight','1.0',tk.END)
+            text_widget.tag_remove('find_n','1.0',tk.END)            
+
         ctk.CTkLabel(top_fr, text="Find What:", font=("Arial", 14, "normal")).grid(row=0, column=0, padx=10, pady=10, sticky="w")
         self.find_entry = ctk.CTkEntry(top_fr, width=250)
-        self.find_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
-        
-        # 3. Replace Section
+        self.find_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")       
         ctk.CTkLabel(top_fr, text="Replace With:", font=("Arial", 14, "normal")).grid(row=1, column=0, padx=10, pady=10, sticky="w")
         self.replace_entry = ctk.CTkEntry(top_fr, width=250)
         self.replace_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-        
-        # 4. Count and Match Case Section
         self.count_label = ctk.CTkLabel(top_fr, text="Matches: 0", font=("Arial", 12, "normal"))
         self.count_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
-        
         self.match_case_var = tk.StringVar(value="off") # CTkCheckBox ke liye
         ctk.CTkCheckBox(top_fr, text="Match Case", variable=self.match_case_var, onvalue="on", offvalue="off").grid(row=2, column=1, padx=10, pady=5, sticky="w")
-
-        # 5. Buttons Section
         button_frame = ctk.CTkFrame(top_fr, fg_color="transparent")
-        button_frame.grid(row=3, column=0, columnspan=2, pady=20)
-        
-        ctk.CTkButton(button_frame, text="Find Next >").pack(side="left", padx=5)
-        ctk.CTkButton(button_frame, text="< Find Prev").pack(side="left", padx=5)
-        ctk.CTkButton(button_frame, text="Replace").pack(side="left", padx=5)
-        ctk.CTkButton(button_frame, text="Replace All").pack(side="left", padx=5)
-        
-        # Objects ko instance variables mein store kar rahe hain taki dusre methods access kar sakein
-        self.top_fr = top_fr
-        
-        # Current tab ko highlight karne ke liye initial setup
-        self.s = other_features() # Assuming other_features is accessible
-        
-        # Hum Find and Replace ke liye ek global list of matches maintain karenge
-        self.matches = [] 
-        self.current_match_index = -1
+        button_frame.grid(row=3, column=0, columnspan=2, pady=20)        
+        ctk.CTkButton(button_frame, text="Find All",command=find_all,width=15).pack(side="left", padx=5)
+        self.next=ctk.CTkButton(button_frame, text="Next >",width=15,command=find_next)
+        self.next.pack(side="left", padx=5)
+        self.prev=ctk.CTkButton(button_frame, text="< Prev",width=15,command=find_prev)
+        self.prev.pack(side="left", padx=5)
+        self.replace=ctk.CTkButton(button_frame, text="Replace",width=15,command=replace_f,state="disabled")
+        self.replace.pack(side="left", padx=5)
+        self.replace_all=ctk.CTkButton(button_frame, text="Replace All",width=15,command=replace_all_f,state="disabled")
+        self.replace_all.pack(side="left", padx=5)
+        self.matches = []
+        self.top_fr=top_fr
+        ctk.CTkButton(top_fr,text="Done",font=('Arial',14,'normal'),width=17,
+                      command=self.f_r_close).grid(row=4,column=0,columnspan=3,padx=30,pady=10)
+    def undo_f(self):
+        current=note.get()
+        text_widget=text_box[current][0]
+        try:
+            text_widget.edit_undo()
+        except:
+            pass
+    
+    def redo_f(self):
+        current=note.get()
+        text_widget=text_box[current][0]
+        try:
+            text_widget.edit_redo()
+        except:
+            pass
 
 # Main GUI
 fm=File_menu()
@@ -303,7 +415,7 @@ note=ctk.CTkTabview(win,anchor="nw")
 note.pack(fill="both",expand=True)
 note.add("new 1")
 tab_frame=note._tab_dict["new 1"]
-txtarea=ctk.CTkTextbox(tab_frame)
+txtarea=ctk.CTkTextbox(tab_frame,undo=True,autoseparators=True)
 txtarea.pack(fill="both",expand=True)
 txtarea.bind("<KeyPress>",of.update_status)
 text_box["new 1"]=[txtarea,1]
@@ -324,9 +436,8 @@ file_menu.add_command(label="Exit        ( Alt+F4 )",command=quit)
 edit=Menu(menu_bar,tearoff=0,bg="gray20",fg="white",font=("Arial",10,"normal"))
 menu_bar.add_cascade(label="Edit ",menu=edit)
 edit.add_command(label="Font Formatting",command=em.font_format)
-edit.add_command(label="Mode Dark/Light")
 edit.add_command(label="Find/Replace",command=em.find_replace)
-edit.add_command(label="Undo")
-edit.add_command(label="Redo")
+edit.add_command(label="Undo (ctrl+z)",command=em.undo_f)
+edit.add_command(label="Redo (ctrl+y)",command=em.redo_f)
 
 win.mainloop()
