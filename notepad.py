@@ -1,6 +1,6 @@
 import customtkinter as ctk
 import tkinter as tk
-from tkinter import filedialog,messagebox,Menu
+from tkinter import filedialog,messagebox,Menu,ttk
 import os
 
 global text_box,status
@@ -18,20 +18,21 @@ class other_features():
 
     def update_status(self,e):
         nm=note.get()
-        status[nm]=False
-        self.update_header()
+        if e.char and e.char.strip() !="":
+            status[nm]=False
+            self.update_header()
 
     def update_header(self,nm=None):
         if nm is None:
-            nm = note.get()  # current active tab ka naam
+            nm = note.get() 
         if nm.startswith("new"):  
             if status[nm] == True:
                 header.configure(text="My Notepad : Saved")
             else:
                 header.configure(text="My Notepad : Not Saved")
         else:
-            filepath = text_box[nm][1]  # yaha path ya number hoga
-            if isinstance(filepath, str):  # matlab file open/save hui thi
+            filepath = text_box[nm][1]  
+            if isinstance(filepath, str):  
                 if status[nm] == True:
                     header.configure(text=f"{filepath} : Saved")
                 else:
@@ -82,7 +83,6 @@ class File_menu():
         txtarea=ctk.CTkTextbox(tab_frame)
         txtarea.pack(fill="both",expand=True)
         text_box[nm]=[txtarea,n]
-        print(text_box)
         note.set(nm)
         self.numbers.append(n)
         status[nm]=True
@@ -105,7 +105,6 @@ class File_menu():
             txtarea.pack(fill="both",expand=True)
             txtarea.insert("1.0",content)
             text_box[nm]=[txtarea,filepath]
-            print(text_box)
             note.set(nm)
             status[nm]=True
             txtarea.bind("<KeyPress>",self.s.update_status)
@@ -132,7 +131,6 @@ class File_menu():
                     f.write(content)   
                 note.set(new_nm)
                 status[new_nm]=True
-                print(text_box)
     
         else:
             txt=text_box[note.get()]
@@ -145,7 +143,6 @@ class File_menu():
             for i in status:
                 if i==note.get():
                     status[i]=True
-            print(text_box)
         self.s.update_header()        
     
     def save_as(self):
@@ -166,7 +163,6 @@ class File_menu():
             note.rename(nm,new_nm)
             note.set(new_nm)
             status[new_nm]=True
-            print(text_box)
             self.s.update_header()
 
     def close(self):
@@ -177,13 +173,11 @@ class File_menu():
                 text_box.clear()
                 status.clear()
                 self.new()
-                print(text_box)
         else:
             ch=self.s.check_status(note.get())
             if ch ==True or ch=="saved":
                 text_box.pop(note.get())
                 note.delete(note.get())    
-            print(text_box)
         self.s.update_header()
 
     def close_all(self):
@@ -196,7 +190,6 @@ class File_menu():
             if ch==True or ch=="saved":
                 text_box.pop(i)
                 note.delete(i)
-        print(text_box)
         if len(text_box)==0:
             self.new()
         else:
@@ -204,9 +197,101 @@ class File_menu():
             self.new()
         self.s.update_header()
 
+class edit_menu():
+    def font_format(self):
+        style = ttk.Style(win) 
+        style.theme_use('default')
+        style.configure('Custom.TCombobox', 
+                selectbackground='#2a2a2a',
+                fieldbackground='#3e3e3e',  
+                background='#2a2a2a',       
+                foreground='white',         
+                selectforeground='white'    
+               )
+        top=ctk.CTkToplevel(win)
+        top.geometry("300x300")
+        top.title("Font Formatting")
+        top.transient(win)   # Always stay on top of main window
+        top.grab_set()       # Focus lock on this window
+        top.focus() 
+        ctk.CTkLabel(top,text="Font Family : ",font=("Arial",15,"normal")).grid(row=0,column=0,pady=10,padx=5)
+        font_list = ["Arial", "Calibri", "Cambria", "Comic Sans MS", "Courier New", "Georgia",
+        "Helvetica", "Impact", "Lucida Console", "MS Sans Serif", "Segoe UI","Tahoma" ,
+        "Times New Roman", "Trebuchet MS", "Verdana", "TkDefaultFont", "TkFixedFont",
+        "TkMenuFont", "TkTextFont", "TkHeadingFont"]
+        family=ttk.Combobox(top,values=font_list,height=10,style="Custom.TCombobox")
+        family.grid(row=0,column=1,pady=10,padx=5)
+        frame=tk.Frame(top,height=50,width=300,bg="#232323")
+        frame.grid(row=1,column=0,pady=20,columnspan=2)
+        frame.grid_propagate(False)
+        var=tk.StringVar()
+        var.set('normal')
+        ctk.CTkRadioButton(frame,text="Normal",variable=var,value="normal",font=("Arial",13),bg_color="#232323").grid(row=1,column=1)
+        ctk.CTkRadioButton(frame,text="Bold",variable=var,value="bold",font=("Arial",13),bg_color="#232323").grid(row=1,column=2)
+        ctk.CTkRadioButton(frame,text="Itallic",variable=var,value="italic",font=("Arial",13),bg_color="#232323").grid(row=1,column=3)
+        ctk.CTkLabel(top,text="Font size ",font=("Arial",15,"normal")).grid(row=2,column=0,pady=10,padx=5)
+        size=tk.StringVar()
+        tk.Spinbox(top,from_=1,to=40,increment=1,textvariable=size,background="#232323",foreground="white",buttonbackground="#232323",).grid(row=2,column=1)
+        size.set(13)
+        def done():
+            for i in text_box:
+                box=note.get()
+                text_box[box][0].configure(font=(family.get(),int(size.get()),var.get()))
+            top.destroy()
+        ctk.CTkButton(top,text="Done",font=("Arial",13,"normal"),command=done).grid(row=3,column=0,pady=10,padx=50,columnspan=2)
+    
+    def find_replace(self):
+        # 1. Toplevel Window Setup
+        top_fr = ctk.CTkToplevel(win)
+        top_fr.geometry("400x250")
+        top_fr.title("Find and Replace")
+        top_fr.transient(win)
+        top_fr.grab_set()
+        top_fr.focus()
+        
+        # Grid layout use karenge for better alignment
+        top_fr.grid_columnconfigure(1, weight=1)
+        
+        # 2. Find Section
+        ctk.CTkLabel(top_fr, text="Find What:", font=("Arial", 14, "normal")).grid(row=0, column=0, padx=10, pady=10, sticky="w")
+        self.find_entry = ctk.CTkEntry(top_fr, width=250)
+        self.find_entry.grid(row=0, column=1, padx=10, pady=10, sticky="ew")
+        
+        # 3. Replace Section
+        ctk.CTkLabel(top_fr, text="Replace With:", font=("Arial", 14, "normal")).grid(row=1, column=0, padx=10, pady=10, sticky="w")
+        self.replace_entry = ctk.CTkEntry(top_fr, width=250)
+        self.replace_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
+        
+        # 4. Count and Match Case Section
+        self.count_label = ctk.CTkLabel(top_fr, text="Matches: 0", font=("Arial", 12, "normal"))
+        self.count_label.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        
+        self.match_case_var = tk.StringVar(value="off") # CTkCheckBox ke liye
+        ctk.CTkCheckBox(top_fr, text="Match Case", variable=self.match_case_var, onvalue="on", offvalue="off").grid(row=2, column=1, padx=10, pady=5, sticky="w")
+
+        # 5. Buttons Section
+        button_frame = ctk.CTkFrame(top_fr, fg_color="transparent")
+        button_frame.grid(row=3, column=0, columnspan=2, pady=20)
+        
+        ctk.CTkButton(button_frame, text="Find Next >").pack(side="left", padx=5)
+        ctk.CTkButton(button_frame, text="< Find Prev").pack(side="left", padx=5)
+        ctk.CTkButton(button_frame, text="Replace").pack(side="left", padx=5)
+        ctk.CTkButton(button_frame, text="Replace All").pack(side="left", padx=5)
+        
+        # Objects ko instance variables mein store kar rahe hain taki dusre methods access kar sakein
+        self.top_fr = top_fr
+        
+        # Current tab ko highlight karne ke liye initial setup
+        self.s = other_features() # Assuming other_features is accessible
+        
+        # Hum Find and Replace ke liye ek global list of matches maintain karenge
+        self.matches = [] 
+        self.current_match_index = -1
+
 # Main GUI
 fm=File_menu()
 of=other_features()
+em=edit_menu()
 win=ctk.CTk()
 screen_width = win.winfo_screenwidth()
 screen_height = win.winfo_screenheight()
@@ -236,12 +321,12 @@ file_menu.add_command(label="Save As     ( Ctrl+Shift+S )",command=fm.save_as)
 file_menu.add_command(label="Close       ( Ctrl+W )",command=fm.close)
 file_menu.add_command(label="Close All   ( Ctrl+Shift+W )",command=fm.close_all)
 file_menu.add_command(label="Exit        ( Alt+F4 )",command=quit)
-edit_menu=Menu(menu_bar,tearoff=0,bg="gray20",fg="white",font=("Arial",10,"normal"))
-menu_bar.add_cascade(label="Edit ",menu=edit_menu)
-edit_menu.add_cascade(label="Font Formatting")
-edit_menu.add_cascade(label="Mode Dark/Light")
-edit_menu.add_cascade(label="Finding")
-edit_menu.add_cascade(label="Undo")
-edit_menu.add_cascade(label="Redo")
+edit=Menu(menu_bar,tearoff=0,bg="gray20",fg="white",font=("Arial",10,"normal"))
+menu_bar.add_cascade(label="Edit ",menu=edit)
+edit.add_command(label="Font Formatting",command=em.font_format)
+edit.add_command(label="Mode Dark/Light")
+edit.add_command(label="Find/Replace",command=em.find_replace)
+edit.add_command(label="Undo")
+edit.add_command(label="Redo")
 
 win.mainloop()
